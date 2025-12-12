@@ -24,14 +24,23 @@ npm install
 
 ## Configuration
 
-Edit `index.js` to set your Proxmox host:
+Set your Proxmox host via environment variables or edit `index.js`:
 
+**Option 1: Environment variables (recommended)**
+```bash
+export PROXMOX_HOST=192.168.1.100
+export PROXMOX_USER=root
+export PROXMOX_PORT=22
+export PROXMOX_KEY_PATH=~/.ssh/id_ed25519
+```
+
+**Option 2: Edit index.js directly**
 ```javascript
 const sshConfig = {
-  host: '192.168.1.9',      // Your Proxmox IP
-  username: 'root',
-  port: 22,
-  privateKeyPath: path.join(os.homedir(), '.ssh', 'id_ed25519')
+  host: process.env.PROXMOX_HOST || '192.168.1.100',  // Your Proxmox IP
+  username: process.env.PROXMOX_USER || 'root',
+  port: parseInt(process.env.PROXMOX_PORT) || 22,
+  privateKeyPath: process.env.PROXMOX_KEY_PATH || path.join(os.homedir(), '.ssh', 'id_ed25519')
 };
 ```
 
@@ -48,17 +57,17 @@ The MCP server will automatically detect if SSH keys are missing or not configur
 
    **Windows (PowerShell):**
    ```powershell
-   type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh root@192.168.1.9 "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+   type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh root@YOUR_PROXMOX_IP "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
    ```
 
    **Linux/Mac:**
    ```bash
-   ssh-copy-id root@192.168.1.9
+   ssh-copy-id root@YOUR_PROXMOX_IP
    ```
 
 3. Test the connection:
    ```bash
-   ssh root@192.168.1.9 "echo 'SSH key auth works!'"
+   ssh root@YOUR_PROXMOX_IP "echo 'SSH key auth works!'"
    ```
 
 If you haven't set up SSH keys yet, the MCP server will return helpful instructions when you try to use it.
@@ -72,7 +81,10 @@ Add to your MCP client config (e.g., `~/.kiro/settings/mcp.json`):
   "mcpServers": {
     "proxmox": {
       "command": "node",
-      "args": ["C:/path/to/mcp-proxmox/index.js"],
+      "args": ["/path/to/mcp-proxmox/index.js"],
+      "env": {
+        "PROXMOX_HOST": "192.168.1.100"
+      },
       "disabled": false,
       "autoApprove": ["proxmox_run_host_command"]
     }
@@ -103,7 +115,7 @@ Execute a command on the Proxmox host.
 {
   "success": true,
   "command": "qm list",
-  "host": "192.168.1.9",
+  "host": "192.168.1.100",
   "exitCode": 0,
   "stdout": "VMID NAME STATUS MEM(MB) ...",
   "stderr": ""

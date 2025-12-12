@@ -7,11 +7,12 @@ const path = require('path');
 const os = require('os');
 
 // SSH Configuration - Use SSH key-based authentication
+// SSH Configuration - Edit these values for your Proxmox server
 const sshConfig = {
-  host: '192.168.1.9',
-  username: 'root',
-  port: 22,
-  privateKeyPath: path.join(os.homedir(), '.ssh', 'id_ed25519')
+  host: process.env.PROXMOX_HOST || '192.168.1.100',  // Your Proxmox IP
+  username: process.env.PROXMOX_USER || 'root',
+  port: parseInt(process.env.PROXMOX_PORT) || 22,
+  privateKeyPath: process.env.PROXMOX_KEY_PATH || path.join(os.homedir(), '.ssh', 'id_ed25519')
 };
 
 // Check SSH key setup and return helpful instructions if missing

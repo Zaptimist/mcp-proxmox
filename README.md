@@ -37,16 +37,31 @@ const sshConfig = {
 
 ### SSH Key Setup
 
+The MCP server will automatically detect if SSH keys are missing or not configured and provide setup instructions. But here's the manual process:
+
 1. Generate a key (if you don't have one):
    ```bash
    ssh-keygen -t ed25519
    ```
 
 2. Copy public key to Proxmox:
-   ```bash
-   ssh root@192.168.1.9 "mkdir -p ~/.ssh && chmod 700 ~/.ssh"
-   cat ~/.ssh/id_ed25519.pub | ssh root@192.168.1.9 "cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+
+   **Windows (PowerShell):**
+   ```powershell
+   type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh root@192.168.1.9 "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
    ```
+
+   **Linux/Mac:**
+   ```bash
+   ssh-copy-id root@192.168.1.9
+   ```
+
+3. Test the connection:
+   ```bash
+   ssh root@192.168.1.9 "echo 'SSH key auth works!'"
+   ```
+
+If you haven't set up SSH keys yet, the MCP server will return helpful instructions when you try to use it.
 
 ## MCP Client Configuration
 

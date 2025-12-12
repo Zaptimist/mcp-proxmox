@@ -14,6 +14,94 @@ const sshConfig = {
   privateKeyPath: path.join(os.homedir(), '.ssh', 'id_ed25519')
 };
 
+// Check SSH key setup and return helpful instructions if missing
+function checkSSHKeySetup() {
+  const keyPath = sshConfig.privateKeyPath;
+  const pubKeyPath = keyPath + '.pub';
+  
+  if (!fs.existsSync(keyPath)) {
+    return {
+      ready: false,
+      error: 'SSH private key not found',
+      instructions: `
+🔑 SSH Key Setup Required
+
+Your SSH private key was not found at: ${keyPath}
+
+Step 1: Generate an SSH key pair
+  ssh-keygen -t ed25519
+
+Step 2: Copy your public key to the Proxmox server
+  Windows (PowerShell):
+    type $env:USERPROFILE\\.ssh\\id_ed25519.pub | ssh ${sshConfig.username}@${sshConfig.host} "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+  
+  Linux/Mac:
+    ssh-copy-id ${sshConfig.username}@${sshConfig.host}
+
+Step 3: Test the connection
+  ssh ${sshConfig.username}@${sshConfig.host} "echo 'SSH key auth works!'"
+
+After completing these steps, restart the MCP server.
+`.trim()
+    };
+  }
+  
+  return { ready: true };
+}
+
+// Test SSH connection
+async function testSSHConnection() {
+  try {
+    const result = await executeSSHCommand('echo "connected"');
+    return { success: true };
+  } catch (err) {
+    // Check if it's an auth error (key not on server)
+    if (err.message.includes('All configured authentication methods failed')) {
+      const pubKeyPath = sshConfig.privateKeyPath + '.pub';
+      let pubKey = '';
+      try {
+        pubKey = fs.readFileSync(pubKeyPath, 'utf8').trim();
+      } catch (e) {
+        pubKey = '<could not read public key>';
+      }
+      
+      return {
+        success: false,
+        error: 'SSH key not authorized on server',
+        instructions: `
+🔐 SSH Key Not Authorized
+
+Your SSH key exists but is not authorized on the Proxmox server.
+
+Your public key:
+${pubKey}
+
+Add it to the Proxmox server by running:
+  ssh ${sshConfig.username}@${sshConfig.host}  # (enter password when prompted)
+  
+Then on the server:
+  mkdir -p ~/.ssh && chmod 700 ~/.ssh
+  echo '${pubKey}' >> ~/.ssh/authorized_keys
+  chmod 600 ~/.ssh/authorized_keys
+  exit
+
+Or from your local machine (one command):
+  Windows (PowerShell):
+    type $env:USERPROFILE\\.ssh\\id_ed25519.pub | ssh ${sshConfig.username}@${sshConfig.host} "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+  
+  Linux/Mac:
+    ssh-copy-id ${sshConfig.username}@${sshConfig.host}
+`.trim()
+      };
+    }
+    
+    return {
+      success: false,
+      error: err.message
+    };
+  }
+}
+
 // Create the MCP server
 const server = new Server(
   {
@@ -154,25 +242,64 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const args = request.params.arguments || {};
 
     if (name === 'proxmox_run_host_command') {
+      // Check if SSH key exists
+      const keyCheck = checkSSHKeySetup();
+      if (!keyCheck.ready) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                error: keyCheck.error,
+                setup_instructions: keyCheck.instructions,
+              }, null, 2),
+            },
+          ],
+          isError: true,
+        };
+      }
+
       const { command } = args;
       
-      const result = await executeSSHCommand(command);
+      try {
+        const result = await executeSSHCommand(command);
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              success: result.success,
-              command: command,
-              host: sshConfig.host,
-              exitCode: result.exitCode,
-              stdout: result.stdout,
-              stderr: result.stderr,
-            }, null, 2),
-          },
-        ],
-      };
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                success: result.success,
+                command: command,
+                host: sshConfig.host,
+                exitCode: result.exitCode,
+                stdout: result.stdout,
+                stderr: result.stderr,
+              }, null, 2),
+            },
+          ],
+        };
+      } catch (sshError) {
+        // Check if it's an auth error
+        if (sshError.message.includes('All configured authentication methods failed')) {
+          const connTest = await testSSHConnection();
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  success: false,
+                  error: connTest.error,
+                  setup_instructions: connTest.instructions,
+                }, null, 2),
+              },
+            ],
+            isError: true,
+          };
+        }
+        throw sshError;
+      }
     }
 
     return {

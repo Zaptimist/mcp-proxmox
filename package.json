@@ -1,0 +1,21 @@
+{
+  "name": "proxmox-ssh-mcp-server",
+  "version": "1.0.0",
+  "description": "Proxmox SSH MCP server for remote Proxmox command execution",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": ["mcp", "ssh", "server"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.21.0",
+    "ssh2": "^1.15.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}

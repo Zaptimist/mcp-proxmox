@@ -1,59 +1,59 @@
 # Gemini AI - Proxmox SSH MCP Server
 
 ## ⚠️ SECURITY FIRST
-**Deze server heeft STRIKTE SECURITY BEPERKINGEN. Alle destructieve commands zijn GEBLOKKEERD.**
-**Verwijder/delete operaties zijn NOOIT toegestaan via LLM - alleen via Proxmox web interface.**
+**This server has STRICT SECURITY RESTRICTIONS. All destructive commands are BLOCKED.**
+**Delete/removal operations are NEVER allowed via LLM - only via Proxmox web interface.**
 
-## Overzicht
-Deze MCP server biedt **veilige** SSH toegang tot Proxmox hosts voor het uitvoeren van read-only monitoring en basis VM/container management taken.
+## Overview
+This MCP server provides **secure** SSH access to Proxmox hosts for executing read-only monitoring and basic VM/container management tasks.
 
-## 🚀 Beschikbare Tools
+## 🚀 Available Tools
 
 ### proxmox_run_host_command
-**Gebruik**: Voer Proxmox CLI commands uit via SSH
+**Usage**: Execute Proxmox CLI commands via SSH
 ```
-Vraag: "Start VM 500 op"
+Question: "Start VM 500"
 Tool: proxmox_run_host_command
 Parameters: command="qm start 500"
-Antwoord: Command output met success status
+Response: Command output with success status
 ```
 
-## 📋 Proxmox Command Voorbeelden
+## 📋 Proxmox Command Examples
 
 ### VM Management
 ```
-# VM's tonen
-"Laat alle VMs zien" → command="qm list"
+# List VMs
+"Show all VMs" → command="qm list"
 
-# VM starten
+# Start VM
 "Start VM 500" → command="qm start 500"
 
-# VM stoppen (netjes)
+# Stop VM (graceful)
 "Stop VM 500" → command="qm shutdown 500"
 
-# VM forceren stoppen
-"Forceer stop VM 500" → command="qm stop 500"
+# Force stop VM
+"Force stop VM 500" → command="qm stop 500"
 
 # VM status
-"Status van VM 100" → command="qm status 100"
+"Status of VM 100" → command="qm status 100"
 
-# VM configuratie
-"Configuratie van VM 100" → command="qm config 100"
+# VM configuration
+"Configuration of VM 100" → command="qm config 100"
 ```
 
 ### Container Management
 ```
-# Containers tonen
-"Laat alle containers zien" → command="pct list"
+# List containers
+"Show all containers" → command="pct list"
 
-# Container starten
+# Start container
 "Start container 101" → command="pct start 101"
 
-# Container stoppen
+# Stop container
 "Stop container 101" → command="pct shutdown 101"
 
 # Container status
-"Status van container 101" → command="pct status 101"
+"Status of container 101" → command="pct status 101"
 ```
 
 ### System Monitoring
@@ -61,7 +61,7 @@ Antwoord: Command output met success status
 # Node status
 "Proxmox node status" → command="pvesh get /nodes/pve/status"
 
-# Storage overzicht
+# Storage overview
 "Storage status" → command="pvesh get /nodes/pve/storage"
 
 # System load
@@ -77,7 +77,7 @@ Antwoord: Command output met success status
 ## 🔒 Security & Restrictions
 
 ### 🚫 BLOCKED COMMANDS (Security Protection)
-De volgende destructieve commands zijn **PERMANENT GEBLOKKEERD**:
+The following destructive commands are **PERMANENTLY BLOCKED**:
 
 - VM/Container Deletion: `qm destroy`, `pct destroy`
 - File System: `rm`, `rmdir`, `dd`, `mkfs`

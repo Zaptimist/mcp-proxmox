@@ -45,28 +45,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['command'],
         },
       },
-      {
-        name: 'ssh_run_command',
-        description: 'Execute a command on any SSH host',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            command: {
-              type: 'string',
-              description: 'The command to execute',
-            },
-            host: {
-              type: 'string',
-              description: 'SSH host (optional, defaults to configured host)',
-            },
-            username: {
-              type: 'string',
-              description: 'SSH username (optional, defaults to configured username)',
-            },
-          },
-          required: ['command'],
-        },
-      },
     ],
   };
 });
@@ -104,12 +82,8 @@ function isDangerousCommand(command) {
 }
 
 // Execute SSH command
-async function executeSSHCommand(command, host = sshConfig.host, username = sshConfig.username) {
+async function executeSSHCommand(command) {
   return new Promise((resolve, reject) => {
-    if (!host || !username) {
-      reject(new Error('SSH credentials are not configured correctly.'));
-      return;
-    }
 
     // Security check: Block dangerous commands
     if (isDangerousCommand(command)) {
@@ -165,9 +139,9 @@ async function executeSSHCommand(command, host = sshConfig.host, username = sshC
     });
 
     conn.connect({
-      host: host,
-      port: 22,
-      username: username,
+      host: sshConfig.host,
+      port: sshConfig.port,
+      username: sshConfig.username,
       privateKey: privateKey,
     });
   });
@@ -179,14 +153,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name } = request.params;
     const args = request.params.arguments || {};
 
-    if (name === 'proxmox_run_host_command' || name === 'ssh_run_command') {
-      const { command, host, username } = args;
+    if (name === 'proxmox_run_host_command') {
+      const { command } = args;
       
-      const result = await executeSSHCommand(
-        command,
-        host || sshConfig.host,
-        username || sshConfig.username
-      );
+      const result = await executeSSHCommand(command);
 
       return {
         content: [
@@ -195,7 +165,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: JSON.stringify({
               success: result.success,
               command: command,
-              host: host || sshConfig.host,
+              host: sshConfig.host,
               exitCode: result.exitCode,
               stdout: result.stdout,
               stderr: result.stderr,
